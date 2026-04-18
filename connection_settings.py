@@ -27,18 +27,3 @@ def load_config(file_path="connection_settings.json"):
             "Używam domyślnych ustawień."
         )
         return {"host": "127.0.0.1", "port": 65432}
-
-
-def load_settings(file_path="connection_settings.json"):
-    config = load_config(file_path)
-    host = config.get("host", "127.0.0.1")
-    port = config.get("port", 65432)
-    udp_ip = config.get("udp_ip", "127.0.0.1")
-    udp_port = config.get("udp_port", 8001)
-
-    return {
-        "host": host,
-        "port": port,
-        "udp_ip": udp_ip,
-        "udp_port": udp_port,
-    }
