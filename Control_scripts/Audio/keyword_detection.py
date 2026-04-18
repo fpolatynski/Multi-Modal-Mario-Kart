@@ -25,12 +25,14 @@ KEYWORDS = ['banana', 'bomb', 'chair', 'coffee']
 # =========================
 # Ładowanie Konfiguracji
 # =========================
-def load_config(file_path="test\config.json"):
-    """Odczyt konfiguracji z pliki .json"""
+def load_config(file_path="connection_settings.json"):
     try:
         with open(file_path, "r") as f:
-            return json.load(f)
+            config = json.load(f)
+            print(f"[KD] Załadowano konfigurację z {file_path}, host: {config.get('host')}, port: {config.get('port')}")
+            return config
     except FileNotFoundError:
+        print(f"[KD] Nie znaleziono pliku konfiguracyjnego {file_path}. Używam domyślnych ustawień. (host: 127.0.0.1, port: 65432)")
         return {"host": "127.0.0.1", "port": 65432}
 
 # =========================
@@ -41,7 +43,7 @@ def send_word(sock, word):
     try:
         sock.sendall(word.encode('utf-8'))
     except Exception as e:
-        print(f"Błąd wysyłania: {e}")
+        print(f"[KD] Błąd wysyłania: {e}")
 
 # =========================
 # Przetwarzanie Audio
@@ -60,11 +62,11 @@ def recorder():
 def transcriber(sock):
     """Analizuje audio i wysyła wykryte słowa kluczowe"""
     model_size = "tiny.en"
-    print(f"Ładowanie modelu {model_size}...")
+    print(f"[KD] Ładowanie modelu {model_size}...")
     model = WhisperModel(model_size, device="cpu", compute_type="int8", cpu_threads=8)
     audio_buffer = []
 
-    print("--- System gotowy. Słucham słów kluczowych... ---")
+    print(f"[KD] System gotowy. Słucham słów kluczowych... ---")
     
     while True:
         block = audio_queue.get()
@@ -80,12 +82,12 @@ def transcriber(sock):
 
             for segment in segments:
                 detected_text = segment.text.lower().strip().replace(".", "").replace(",", "")
-                print(f"Usłyszano: {detected_text}")
+                print(f"[KD] Usłyszano: {detected_text}")
 
                 # Sprawdzanie, czy któreś ze słów kluczowych znajduje się w rozpoznanym tekście:
                 for keyword in KEYWORDS:
                     if keyword in detected_text:
-                        print(f"Wysłano na server: {detected_text}")
+                        print(f"[KD] Wysłano na server: {detected_text}")
                         send_word(sock, keyword)
 
 def main():
@@ -98,7 +100,7 @@ def main():
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((host, port))
-            print(f"Połączono z serwerem {host}:{port}")
+            print(f"[KD] Połączono z serwerem {host}:{port}")
 
             # Uruchomienie nagrywania w tle:
             threading.Thread(target=recorder, daemon=True).start()
@@ -107,10 +109,9 @@ def main():
             transcriber(s)
 
     except ConnectionRefusedError:
-        print("Nie udało się połączyć z serwerem. Upewnij się, że serwer działa.")
-
+        print(f"[KD] Nie udało się połączyć z serwerem. Upewnij się, że serwer działa.")
     except KeyboardInterrupt:
-        print("\nZamykanie programu...")
+        print(f"[KD] Zamykanie programu...")
 
 if __name__ == "__main__":
     main()
